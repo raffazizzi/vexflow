@@ -30,6 +30,17 @@ Vex.Flow.Clef.types = {
     code: "vad",
     point: 40,
     line: 1
+  },
+  "soprano": {
+    code: "vad",
+    point: 40,
+    line: 4
+  },
+  "octave": {
+    code: "v83",
+    point: 40,
+    line:3,
+    octave: true
   }
 };
 
@@ -47,5 +58,14 @@ Vex.Flow.Clef.prototype.init = function(clef) {
 Vex.Flow.Clef.prototype.addModifier = function(stave) {
   var glyph = new Vex.Flow.Glyph(this.clef.code, this.clef.point);
   this.placeGlyphOnLine(glyph, stave, this.clef.line);
+  
+  if (this.clef.octave) {
+    var glyph2 = new Vex.Flow.Glyph('v8', 20);
+    this.placeGlyphOnLine(glyph2, stave, 6.5);
+    glyph2.setXShift(12);
+    stave.addGlyph(glyph2);
+  }
+  
   stave.addGlyph(glyph);
+  
 }

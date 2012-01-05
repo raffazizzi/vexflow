@@ -19,6 +19,10 @@ Vex.Flow.clefProperties.values = {
   'bass':    { line_shift: 6 },
   'tenor':   { line_shift: 0 },
   'alto':    { line_shift: 3 },
+  //Support for obsolete clefs
+  'soprano': { line_shift: 1 },
+  //Support for other clefs
+  'octave': {line_shift: 3.5}
 };
 
 Vex.Flow.keyProperties = function(key, clef) {
@@ -363,6 +367,7 @@ Vex.Flow.keySignature.accidentalList = function(acc) {
 }
 
 Vex.Flow.durationToTicks = {
+  "dw":    (Vex.Flow.RESOLUTION / 1) * 2,
   "w":    Vex.Flow.RESOLUTION / 1,
   "wh":   Vex.Flow.RESOLUTION / 1,
   "wm":   Vex.Flow.RESOLUTION / 1,
@@ -412,6 +417,14 @@ Vex.Flow.durationIsDotted = function(duration) {
 }
 
 Vex.Flow.durationToGlyph.duration_codes = {
+  "dw": { // Double whole note
+    code_head: "v53",
+    code_rest: "v31",
+    head_width: 16.5,
+    stem: false,
+    stem_offset: 0,
+    flag: false
+  },
   "w": { // Whole note
     code_head: "v1d",
     code_rest: "v5c",
