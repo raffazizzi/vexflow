@@ -372,6 +372,7 @@ Vex.Flow.durationToTicks = {
   "wh":   Vex.Flow.RESOLUTION / 1,
   "wm":   Vex.Flow.RESOLUTION / 1,
   "wr":   Vex.Flow.RESOLUTION / 1,
+  "wd":   (Vex.Flow.RESOLUTION / 1) + (Vex.Flow.RESOLUTION / 2),
   "h":    Vex.Flow.RESOLUTION / 2,
   "hh":   Vex.Flow.RESOLUTION / 2,
   "hm":   Vex.Flow.RESOLUTION / 2,
@@ -457,6 +458,15 @@ Vex.Flow.durationToGlyph.duration_codes = {
     flag: false,
     rest: true,
     position: "D/5"
+  },
+  "wd": { // Dotted whole note
+    code_head: "v1d",
+    code_rest: "v5c",
+    head_width: 16.5,
+    stem: false,
+    stem_offset: 0,
+    flag: false,
+    dot: true
   },
   "h": { // Half note
     code_head: "v81",
