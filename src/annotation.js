@@ -77,7 +77,13 @@ Vex.Flow.Annotation.prototype.draw = function() {
   } else {
     var y = this.note.getYForTopText(this.text_line) - 1;
   }
-
-  this.context.fillText(this.text, x, y);
+  //Not great, but handling multiline text. It doesn't consider vertical space between staves.
+  var parent = this;
+  if (this.text.replace(/[\r\n]/g, '\n')){
+    var v_size = this.font.size==undefined ? 10 : this.font.size; 
+    $.each(this.text.split('\n'), function(i,t) {parent.context.fillText(t, x, (i>0 ? y+(v_size*i) : y));});
+    console.log(v_size);
+  }
+  else {this.context.fillText(this.text, x, y);}
   this.context.restore();
 }
