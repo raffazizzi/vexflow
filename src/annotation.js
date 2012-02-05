@@ -82,7 +82,6 @@ Vex.Flow.Annotation.prototype.draw = function() {
   if (this.text.replace(/[\r\n]/g, '\n')){
     var v_size = this.font.size==undefined ? 10 : this.font.size; 
     $.each(this.text.split('\n'), function(i,t) {parent.context.fillText(t, x, (i>0 ? y+(v_size*i) : y));});
-    console.log(v_size);
   }
   else {this.context.fillText(this.text, x, y);}
   this.context.restore();
