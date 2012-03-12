@@ -40,7 +40,7 @@ Vex.Flow.StaveHairpin.prototype.init = function(notes, type) {
 
   this.render_options = {
       height: 10,
-      y_shift: 0, //vertical offset
+      y_shift: 20, //vertical offset
       left_shift_px: 0, //left horizontal offset
       right_shift_px: 0 // right horizontal offset
     };
@@ -88,7 +88,7 @@ Vex.Flow.StaveHairpin.prototype.renderHairpin = function(params) {
 
   var ctx = this.context;
   
-  var dis = this.render_options.y_shift + 20;
+  var dis = this.render_options.y_shift;
   var y_shift = params.first_y;
   
   if (this.position == Vex.Flow.Modifier.Position.ABOVE) {
@@ -125,14 +125,14 @@ Vex.Flow.StaveHairpin.prototype.draw = function() {
   var first_note = this.first_note;
   var last_note = this.last_note;
   
-  var start = first_note.getModifierStartXY(this.position, 0);
-  var end = last_note.getModifierStartXY(this.position, 0);
+  var start = first_note.getModifierStartXY(this.position, this.index);
+  var end = last_note.getModifierStartXY(this.position, this.index);
   
   this.renderHairpin({
     first_x: start.x,
     last_x: end.x,
-    first_y: start.y + this.render_options.y_shift + 20,
-    last_y: end.y + this.render_options.y_shift + 20,
+    first_y: first_note.getStave().y + first_note.getStave().height,
+    last_y: last_note.getStave().y + last_note.getStave().height,
     staff_height: first_note.getStave().height
   });
 
