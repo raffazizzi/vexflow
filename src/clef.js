@@ -35,7 +35,7 @@ Vex.Flow.Clef.types = {
     code: "v59",
     point: 40,
     line: 2
-  }
+  },
   "soprano": {
     code: "vad",
     point: 40,
