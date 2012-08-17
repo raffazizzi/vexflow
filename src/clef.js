@@ -31,6 +31,11 @@ Vex.Flow.Clef.types = {
     point: 40,
     line: 1
   },
+  "percussion": {
+    code: "v59",
+    point: 40,
+    line: 2
+  }
   "soprano": {
     code: "vad",
     point: 40,
