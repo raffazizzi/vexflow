@@ -523,7 +523,7 @@ Vex.Flow.durationToTicks.durations = {
 };
 
 Vex.Flow.durationAliases = {
-  "dw": "0",
+  "d": "0",
   "w": "1",
   "h": "2",
   "q": "4",
