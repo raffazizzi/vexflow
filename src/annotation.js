@@ -54,7 +54,11 @@ Vex.Flow.Annotation.prototype.setFont = function(family, size, weight) {
   return this;
 }
 Vex.Flow.Annotation.prototype.setBottom = function(bottom) {
-  this.vert_justification = Vex.Flow.Annotation.VerticalJustify.BOTTOM
+  if (bottom) {
+    this.vert_justification = Vex.Flow.Annotation.VerticalJustify.BOTTOM;
+  } else {
+    this.vert_justification = Vex.Flow.Annotation.VerticalJustify.TOP;
+  }
   return this;
 }
 Vex.Flow.Annotation.prototype.setVerticalJustification = function(
@@ -75,6 +79,7 @@ Vex.Flow.Annotation.prototype.draw = function() {
 
   var start = this.note.getModifierStartXY(Vex.Flow.Modifier.Position.ABOVE,
       this.index);
+
   this.context.save();
   this.context.setFont(this.font.family, this.font.size, this.font.weight);
   var text_width = this.context.measureText(this.text).width;
@@ -95,9 +100,16 @@ Vex.Flow.Annotation.prototype.draw = function() {
     var x = this.note.getStemX() - text_width / 2;
   }
 
+  if (this.note.getStemExtents) {
+    var stem_ext = this.note.getStemExtents();
+    var spacing = this.note.stave.options.spacing_between_lines_px;
+  }
+
   if (this.vert_justification == Vex.Flow.Annotation.VerticalJustify.BOTTOM) {
-    // TODO(0xfe): Fix this demeter violation
     var y = this.note.stave.getYForBottomText(this.text_line);
+    if (stem_ext) {
+      y = Vex.Max(y, (stem_ext.baseY) + (spacing * (this.text_line + 2)));
+    }
   } else if (this.vert_justification ==
              Vex.Flow.Annotation.VerticalJustify.CENTER) {
     var yt = this.note.getYForTopText(this.text_line) - 1;
@@ -106,6 +118,8 @@ Vex.Flow.Annotation.prototype.draw = function() {
   } else if (this.vert_justification ==
              Vex.Flow.Annotation.VerticalJustify.TOP) {
     var y = this.note.stave.getYForTopText(this.text_line);
+    if (stem_ext)
+      y = Vex.Min(y, (stem_ext.topY - 5) - (spacing * this.text_line));
   } else /* CENTER_STEM */{
     var extents = this.note.getStemExtents();
     var y = extents.topY + ( extents.baseY - extents.topY ) / 2 +

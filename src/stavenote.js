@@ -26,6 +26,7 @@ Vex.Flow.StaveNote.prototype.init = function(note_struct) {
 
   this.keys = note_struct.keys;
   this.clef = note_struct.clef;
+  this.beam = null;
 
   // Pull note rendering properties
   this.glyph = Vex.Flow.durationToGlyph(this.duration, this.noteType);
@@ -35,6 +36,8 @@ Vex.Flow.StaveNote.prototype.init = function(note_struct) {
         JSON.stringify(note_struct));
   }
 
+  this.notes_displaced = false;   // if true, displace note to right
+  this.dot_shiftY = 0;
   this.keyProps = [];             // per-note properties
 
   // Pull per-note location and other rendering properties.
@@ -45,6 +48,7 @@ Vex.Flow.StaveNote.prototype.init = function(note_struct) {
 
     // All rests use the same position on the line.
     // if (this.glyph.rest) key = this.glyph.position;
+    if (this.glyph.rest) this.glyph.position = key;
     var props = Vex.Flow.keyProperties(key, this.clef);
     if (!props) {
       throw new Vex.RuntimeError("BadArguments",
@@ -86,10 +90,85 @@ Vex.Flow.StaveNote.prototype.init = function(note_struct) {
     annotation_spacing: 5 // spacing above note for annotations
   }
 
-  this.setStemDirection(note_struct.stem_direction);
+  // whole note has no stem
+  if (this.duration == "w") this.render_options.stem_height = 0;
+  // Lengthen 32nd & 64th note stems for additional flags/beams
+  if (this.duration == "32") this.render_options.stem_height = 45;
+  if (this.duration == "64") this.render_options.stem_height = 50;
+
+  var auto_stem_direction;
+  if (note_struct.auto_stem) {
+    // Figure out optimal stem direction based on given notes
+    this.min_line = this.keyProps[0].line;
+    if (this.min_line < 3) {
+      auto_stem_direction = 1;
+    } else {
+      auto_stem_direction = -1;
+    }
+    this.setStemDirection(auto_stem_direction);
+  } else {
+    this.setStemDirection(note_struct.stem_direction);
+  }
 
   // Calculate left/right padding
   this.calcExtraPx();
+}
+
+Vex.Flow.StaveNote.prototype.getBoundingBox = function() {
+  if (!this.preFormatted) throw new Vex.RERR("UnformattedNote",
+      "Can't call getBoundingBox on an unformatted note.");
+
+  var metrics = this.getMetrics();
+
+  var w = metrics.width;
+  var x = this.getAbsoluteX() - metrics.modLeftPx - metrics.extraLeftPx;
+
+  var min_y = 0;
+  var max_y = 0;
+  var half_line_spacing = this.getStave().getSpacingBetweenLines() / 2;
+  var line_spacing = half_line_spacing * 2;
+
+  if (this.isRest()) {
+    var y = this.ys[0];
+    if (this.duration == "w" || this.duration == "h") {
+      min_y = y - half_line_spacing;
+      max_y = y + half_line_spacing;
+    } else {
+      min_y = y - (this.glyph.line_above * line_spacing);
+      max_y = y + (this.glyph.line_below * line_spacing);
+    }
+  } else if (this.glyph.stem) {
+    var ys = this.getStemExtents();
+    ys.baseY += half_line_spacing * this.stem_direction;
+    min_y = Vex.Min(ys.topY, ys.baseY);
+    max_y = Vex.Max(ys.topY, ys.baseY);
+  } else {
+    min_y = null;
+    max_y = null;
+
+    for (var i=0; i < this.ys.length; ++i) {
+      var yy = this.ys[i];
+      if (i == 0) {
+        min_y = yy;
+        max_y = yy;
+      } else {
+        min_y = Vex.Min(yy, min_y);
+        max_y = Vex.Max(yy, max_y);
+      }
+      min_y -= half_line_spacing;
+      max_y += half_line_spacing;
+    }
+  }
+
+  return new Vex.Flow.BoundingBox(x, min_y, w, max_y - min_y);
+}
+
+Vex.Flow.StaveNote.prototype.isRest = function() {
+  return this.glyph.rest;
+}
+
+Vex.Flow.StaveNote.prototype.hasStem = function() {
+  return this.glyph.stem;
 }
 
 Vex.Flow.StaveNote.prototype.getYForTopText = function(text_line) {
@@ -101,7 +180,7 @@ Vex.Flow.StaveNote.prototype.getYForTopText = function(text_line) {
 Vex.Flow.StaveNote.prototype.getYForBottomText = function(text_line) {
   var extents = this.getStemExtents();
   return Vex.Max(this.stave.getYForTopText(text_line),
-      extents.baseY + (this.render_options.annotation_spacing * (text_line + 1)));
+      extents.baseY + (this.render_options.annotation_spacing * (text_line)));
 }
 
 Vex.Flow.StaveNote.prototype.setStave = function(stave) {
@@ -118,9 +197,49 @@ Vex.Flow.StaveNote.prototype.setStave = function(stave) {
   return this.setYs(ys);
 }
 
+// Get individual note/octave pairs for all notes in this
+// chord.
+Vex.Flow.StaveNote.prototype.getKeys = function() {
+  return this.keys;
+}
+
 // Get the Key Properties for each note in chord
 Vex.Flow.StaveNote.prototype.getKeyProps = function() {
   return this.keyProps;
+}
+
+Vex.Flow.StaveNote.prototype.getStemLength = function() {
+  return this.render_options.stem_height;
+}
+
+// Determine minimum length of stem
+Vex.Flow.StaveNote.prototype.getStemMinumumLength = function() {
+  var length = this.duration == "w" ? 0 : 20;
+  // if note is flagged, cannot shorten beam
+  switch (this.duration) {
+   case "8":
+     if (this.beam == null) length = 35;
+     break;
+   case "16":
+     if (this.beam == null)
+       length = 35;
+     else
+       length = 25;
+     break;
+   case "32":
+     if (this.beam == null)
+       length = 45;
+     else
+       length = 35;
+     break;
+   case "64":
+     if (this.beam == null)
+       length = 50;
+     else
+       length = 40;
+     break;
+  }
+  return length;
 }
 
 Vex.Flow.StaveNote.prototype.getStemDirection = function() {
@@ -134,6 +253,22 @@ Vex.Flow.StaveNote.prototype.getStemX = function() {
     x_begin : x_end;
 
   return stem_x;
+}
+
+// Check if note is manually shifted to the right
+Vex.Flow.StaveNote.prototype.isDisplaced = function() {
+  return this.notes_displaced;
+}
+// Manual setting of note shift to the right
+Vex.Flow.StaveNote.prototype.setNoteDisplaced = function(displaced) {
+  this.notes_displaced = displaced;
+  return this;
+}
+
+// Manuallly set note stem length
+Vex.Flow.StaveNote.prototype.setStemLength = function(height) {
+  this.render_options.stem_height = height;
+  return this;
 }
 
 Vex.Flow.StaveNote.prototype.getStemExtents = function() {
@@ -154,6 +289,11 @@ Vex.Flow.StaveNote.prototype.getStemExtents = function() {
       top_pixel = (top_pixel < stem_top) ? top_pixel : stem_top;
       base_pixel = (base_pixel > this.ys[i]) ? base_pixel : this.ys[i];
     }
+
+    if(this.noteType == "s" || this.noteType == 'x') {
+      top_pixel -= this.stem_direction * 7;
+      base_pixel -= this.stem_direction * 7;
+    }
   }
 
   return { topY: top_pixel, baseY: base_pixel };
@@ -170,6 +310,18 @@ Vex.Flow.StaveNote.prototype.getTieLeftX = function() {
   var tieEndX = this.getAbsoluteX();
   tieEndX += this.x_shift - this.extraLeftPx;
   return tieEndX;
+}
+
+Vex.Flow.StaveNote.prototype.getLineForRest = function() {
+  var rest_line = this.keyProps[0].line;
+  if (this.keyProps.length > 1) {
+    var last_line  = this.keyProps[this.keyProps.length - 1].line;
+    var top = Vex.Max(rest_line, last_line);
+    var bot = Vex.Min(rest_line, last_line);
+    rest_line = Vex.MidLine(top, bot)
+  }
+
+  return rest_line;
 }
 
 Vex.Flow.StaveNote.prototype.getModifierStartXY = function(position, index) {
@@ -202,7 +354,9 @@ Vex.Flow.StaveNote.prototype.setStemDirection = function(direction) {
 
   this.stem_direction = direction;
   this.beam = null;
-  this.setPreFormatted(false);
+  if (this.preFormatted) {
+    this.preFormat();
+  }
   return this;
 }
 
@@ -263,8 +417,10 @@ Vex.Flow.StaveNote.prototype.addDot = function(index) {
   var dot = new Vex.Flow.Dot();
   dot.setNote(this);
   dot.setIndex(index);
+  dot.setDotShiftY(this.glyph.dot_shiftY);
   this.modifiers.push(dot);
   this.setPreFormatted(false);
+  this.dots++;
   return this;
 }
 
@@ -364,13 +520,36 @@ Vex.Flow.StaveNote.prototype.draw = function() {
   // Keep track of highest and lowest lines for drawing strokes.
   var highest_line = 5;
   var lowest_line = 1;
+
+  // Private function to draw slash note heads, glyphs were not slanted enough
+  // and too small.
+  function drawSlashNoteHead(stavenote, ctx, x, y) {
+    ctx.beginPath();
+    ctx.moveTo(x, y + 11);
+    ctx.lineTo(x, y + 1);
+    ctx.lineTo(x + 15, y - 10);
+    ctx.lineTo(x + 15, y);
+    ctx.lineTo(x, y + 11);
+    ctx.closePath();
+
+    // only fill if quarter note or smaller
+    if (stavenote.duration != 1 &&
+        stavenote.duration != 2 &&
+        stavenote.duration != "h" &&
+        stavenote.duration != "w") {
+      ctx.fill();
+    } else {
+      ctx.stroke();
+    }
+  }
+
   for (var i = start_i; i != end_i; i += step_i) {
     var note_props = this.keyProps[i];
     var line = note_props.line;
     highest_line = line > highest_line ? line : highest_line;
     lowest_line = line < lowest_line ? line : lowest_line;
 
-    // Keep track of last line with a note head, so that consequtive heads
+    // Keep track of last line with a note head, so that consecutive heads
     // are correctly displaced.
     if (last_line == null) {
       last_line = line;
@@ -406,9 +585,18 @@ Vex.Flow.StaveNote.prototype.draw = function() {
 
     // Draw the head.
     if (render_head) {
-      Vex.Flow.renderGlyph(ctx, head_x,
-          y, this.render_options.glyph_font_scale, code_head);
-      // If note above/below the sraff, draw the small staff
+     head_x = Math.round(head_x);
+
+      // if a slash note, draw 'manually' as font glyphs do not slant enough
+      // and are too small.
+      if (this.noteType == "s") {
+        drawSlashNoteHead(this, ctx, head_x + (this.stem_direction == 1 ? 1:0), y);
+      } else {
+        Vex.Flow.renderGlyph(ctx, head_x,
+            y, this.render_options.glyph_font_scale, code_head);
+      }
+
+      // If note above/below the staff, draw the small staff
       if (line <= 0 || line >= 6) {
         var line_y = y;
         var floor = Math.floor(line);
@@ -429,7 +617,7 @@ Vex.Flow.StaveNote.prototype.draw = function() {
 
   // For heads that are off the staff, draw the tiny stroke line. Only
   // applicable to non-rests.
-  if (!glyph.rest) {
+//  if (!glyph.rest) {
     var that = this;
 
     function stroke(y) {
@@ -447,7 +635,7 @@ Vex.Flow.StaveNote.prototype.draw = function() {
     for (var line = 0; line >= lowest_line; --line) {
       stroke(this.stave.getYForNote(line));
     }
-  }
+//  }
 
   // Calculate stem height based on number of notes in this chord.
   var note_stem_height = ((y_bottom - y_top) * stem_direction) +
@@ -460,14 +648,19 @@ Vex.Flow.StaveNote.prototype.draw = function() {
       // Down stems are rendered to the left of the head.
       stem_x = x_begin;
       stem_y = y_top;
+
       // Shorten stem length for 1/2 & 1/4 dead note heads (X)
       if (glyph.code_head == "v95" ||
-          glyph.code_head == "v3e")
+          glyph.code_head == "v3e") {
        stem_y += 4;
+      }
+
     } else {
       // Up stems are rendered to the right of the head.
       stem_x = x_end;
       stem_y = y_bottom;
+
+
       // Shorten stem length for 1/2 & 1/4 dead note heads (X)
       if (glyph.code_head == "v95" ||
           glyph.code_head == "v3e")
@@ -491,6 +684,7 @@ Vex.Flow.StaveNote.prototype.draw = function() {
       flag_x = x_begin + 1;
       flag_y = y_top - note_stem_height;
       flag_code = glyph.code_flag_downstem;
+
     } else {
       // Up stems have flags on the left.
       flag_x = x_end + 1;

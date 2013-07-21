@@ -62,6 +62,7 @@
   <script src="../src/header.js"></script>
   <script src="../src/vex.js"></script>
   <script src="../src/flow.js"></script>
+  <script src="../src/fraction.js"></script>
   <script src="../src/fonts/vexflow_font.js"></script>
   <script src="../src/glyph.js"></script>
   <script src="../src/tables.js"></script>
@@ -106,12 +107,15 @@
   <script src="../src/articulation.js"></script>
   <script src="../src/tremolo.js"></script>
   <script src="../src/raphaelcontext.js"></script>
+  <script src="../src/tuplet.js"></script>
+  <script src="../src/boundingbox.js"></script>
+  <script src="../src/textnote.js"></script>
+  <script src="../src/strokes.js"></script>
+  <script src="../src/stringnumber.js"></script>
+  <script src="../src/frethandfinger.js"></script>
 
   <!-- Compiled Source -->
-  <script src="../vexflow.js"></script>
-
-  <!-- VexTab Source -->
-  <script src="../vextab/vextab.js"></script>
+  <script src="../support/vexflow-min.js"></script>
 
   <!-- Test Sources -->
   <link rel="stylesheet" href="support/qunit.css"
@@ -136,6 +140,7 @@
   <script src="tabtie_tests.js"></script>
   <script src="tabslide_tests.js"></script>
   <script src="beam_tests.js"></script>
+  <script src="auto_beam_formatting_tests.js"></script>
   <script src="vibrato_tests.js"></script>
   <script src="annotation_tests.js"></script>
   <script src="tuning_tests.js"></script>
@@ -149,7 +154,14 @@
   <script src="percussion_tests.js"></script>
   <script src="key_clef_tests.js"></script>
   <script src="stavehairpin_tests.js"></script>
-  <script src="../vextab/vextab_tests.js"></script>
+  <script src="rhythm_tests.js"></script>
+  <script src="tuplet_tests.js"></script>
+  <script src="boundingbox_tests.js"></script>
+  <script src="textnote_tests.js"></script>
+  <script src="strokes_tests.js"></script>
+  <script src="stringnumber_tests.js"></script>
+  <script src="rests_tests.js"></script>
+  <script src="threevoice_tests.js"></script>
 
   <script>
     $(function() {
@@ -171,9 +183,9 @@
       Vex.Flow.Test.TabTie.Start();
       Vex.Flow.Test.TabSlide.Start();
       Vex.Flow.Test.Beam.Start();
+      Vex.Flow.Test.AutoBeamFormatting.Start();
       Vex.Flow.Test.Vibrato.Start();
       Vex.Flow.Test.Annotation.Start();
-      Vex.Flow.Test.VexTab.Start();
       Vex.Flow.Test.Tuning.Start();
       Vex.Flow.Test.Music.Start();
       Vex.Flow.Test.KeyManager.Start();
@@ -182,6 +194,16 @@
       Vex.Flow.Test.Percussion.Start();
       Vex.Flow.Test.ClefKeySignature.Start();
       Vex.Flow.Test.StaveHairpin.Start();
+      Vex.Flow.Test.Rhythm.Start();
+      Vex.Flow.Test.Tuplet.Start();
+      Vex.Flow.Test.BoundingBox.Start();
+      Vex.Flow.Test.Strokes.Start();
+      Vex.Flow.Test.StringNumber.Start();
+      Vex.Flow.Test.Rests.Start();
+      Vex.Flow.Test.ThreeVoices.Start();
+/*
+      Vex.Flow.Test.TextNote.Start();
+*/
     });
   </script>
 </head>

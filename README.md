@@ -3,12 +3,22 @@
 A JavaScript library for rendering music notation.
 Copyright (c) 2010 Mohit Muthanna Cheppudira
 
-## On The Web
+## What is VexFlow?
 
-* [VexFlow Home](http://vexflow.com)
-* [The VexFlow Tutorial](http://vexflow.com/docs/tutorial.html)
-* [VexTab Home](http://vextab.com)
-* [The VexTab Tutorial](http://vexflow.com/vextab/tutorial.html)
+VexFlow is an open-source web-based music notation rendering API. It is written completely in JavaScript, and runs right in the browser. VexFlow supports HTML5 Canvas and SVG.
+
+Go try out [The VexFlow Tutorial](http://vexflow.com/docs/tutorial.html) to learn how to use VexFlow.
+
+If you're not a developer and just want to write and share your music, go to
+[My VexFlow](http://my.vexflow.com).
+
+
+## Where is VexTab?
+
+VexTab has been overhauled and has moved to a new repository. Go
+to [github/0xfe/vextab](http://github.com/0xfe/vextab).
+
+VexTab 2.0 now supports all VexTab 1.0 features, and [includes a few new ones](http://my.vexflow.com/articles/53?source=enabled).
 
 ## To Contribute
 
@@ -26,8 +36,8 @@ Copyright (c) 2010 Mohit Muthanna Cheppudira
 
 For performing full builds, you need the following:
 
-* JRE
 * Google Closure Compiler (included in support/)
+  * This requires a JRE to be installed.
 * SCons
 * git
 * zip
@@ -46,8 +56,30 @@ Quiet build:
 
     $ scons -Q
 
+## MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
 ## Links
 
-The site: http://www.vexflow.com
-The blog: http://0xfe.blogspot.com
-The discussions: https://groups.google.com/forum/?fromgroups#!forum/vexflow
+* [VexFlow Home](http://vexflow.com)
+* [My VexFlow](http://my.vexflow.com)
+* [The VexFlow Tutorial](http://vexflow.com/docs/tutorial.html)
+* [VexFlow Google Group](https://groups.google.com/forum/?fromgroups#!forum/vexflow)
+* [Me](http://0xfe.muthanna.com)

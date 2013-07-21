@@ -40,6 +40,10 @@ Vex.Flow.GhostNote.prototype.init = function(parameter) {
   this.setWidth(0);
 }
 
+Vex.Flow.GhostNote.prototype.isRest = function() {
+  return true;
+}
+
 Vex.Flow.GhostNote.prototype.setStave = function(stave) {
   var superclass = Vex.Flow.GhostNote.superclass;
   superclass.setStave.call(this, stave);
@@ -56,5 +60,11 @@ Vex.Flow.GhostNote.prototype.preFormat = function() {
 
 Vex.Flow.GhostNote.prototype.draw = function() {
   if (!this.stave) throw new Vex.RERR("NoStave", "Can't draw without a stave.");
-  // Nothing to draw
+
+  // Draw the modifiers
+  for (var i = 0; i < this.modifiers.length; ++i) {
+    var modifier = this.modifiers[i];
+    modifier.setContext(this.context);
+    modifier.draw();
+  }
 }

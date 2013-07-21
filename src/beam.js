@@ -12,16 +12,17 @@
  * @constructor
  * @param {Array.<Vex.Flow.StaveNote>} A set of notes.
  */
-Vex.Flow.Beam = function(notes) {
-  if (arguments.length > 0) this.init(notes);
+Vex.Flow.Beam = function(notes, auto_stem) {
+  if (arguments.length > 0) this.init(notes, auto_stem);
 }
 
 /**
  * Set the notes to attach this beam to.
  *
  * @param {Array.<Vex.Flow.StaveNote>} The notes.
+ * @param auto_stem If true, will automatically set stem direction.
  */
-Vex.Flow.Beam.prototype.init = function(notes) {
+Vex.Flow.Beam.prototype.init = function(notes, auto_stem) {
   if (!notes || notes == []) {
     throw new Vex.RuntimeError("BadArguments", "No notes provided for beam.");
   }
@@ -30,26 +31,52 @@ Vex.Flow.Beam.prototype.init = function(notes) {
     throw new Vex.RuntimeError("BadArguments", "Too few notes for beam.");
   }
 
+  this.unbeamable = false;
+  // Quit if first or last note is a rest.
+  if (!notes[0].hasStem() || !notes[notes.length-1].hasStem()) {
+    this.unbeamable = true;
+    return;
+  }
+
   // Validate beam line, direction and ticks.
   this.stem_direction = notes[0].getStemDirection();
-  this.ticks = notes[0].getTicks();
+  this.ticks = notes[0].getIntrinsicTicks();
 
   if (this.ticks >= Vex.Flow.durationToTicks("4")) {
     throw new Vex.RuntimeError("BadArguments",
         "Beams can only be applied to notes shorter than a quarter note.");
   }
 
-  for (var i = 1; i < notes.length; ++i) {
-    var note = notes[i];
-    if (note.getStemDirection() != this.stem_direction) {
-      throw new Vex.RuntimeError("BadArguments",
-          "Notes in a beam all have the same stem direction");
+  if (!auto_stem) {
+    for (var i = 1; i < notes.length; ++i) {
+      var note = notes[i];
+      if (note.getStemDirection() != this.stem_direction) {
+        throw new Vex.RuntimeError("BadArguments",
+            "Notes in a beam all have the same stem direction");
+      }
     }
   }
 
-  // Success. Lets grab 'em notes.
+  var stem_direction = -1;
+
+  if (auto_stem)  {
+    // Figure out optimal stem direction based on given notes
+    this.min_line = 1000;
+
+    for (var i = 0; i < notes.length; ++i) {
+      var note = notes[i];
+      this.min_line = Vex.Min(note.getKeyProps()[0].line, this.min_line);
+    }
+
+    if (this.min_line < 3) stem_direction = 1;
+  }
+
   for (var i = 0; i < notes.length; ++i) {
     var note = notes[i];
+    if (auto_stem) {
+      note.setStemDirection(stem_direction);
+      this.stem_direction = stem_direction;
+    }
     note.setBeam(this);
   }
 
@@ -77,6 +104,8 @@ Vex.Flow.Beam.prototype.getNotes = function() {
 Vex.Flow.Beam.prototype.draw = function(notes) {
   if (!this.context) throw new Vex.RERR("NoCanvasContext",
       "Can't draw without a canvas context.");
+
+  if (this.unbeamable) return;
 
   var first_note = this.notes[0];
   var last_note = this.notes[this.notes.length - 1];
@@ -143,7 +172,7 @@ Vex.Flow.Beam.prototype.draw = function(notes) {
     var note = this.notes[i];
 
     // Do not draw stem for rests
-    if (note.glyph.rest) {
+    if (!note.hasStem()) {
       continue;
     }
 
@@ -167,7 +196,7 @@ Vex.Flow.Beam.prototype.draw = function(notes) {
 
     for (var i = 0; i < that.notes.length; ++i) {
       var note = that.notes[i];
-      var ticks = note.getTicks();
+      var ticks = note.getIntrinsicTicks();
 
       // Check whether to apply beam(s)
       if (ticks < Vex.Flow.durationToTicks(duration)) {
@@ -236,3 +265,128 @@ Vex.Flow.Beam.prototype.draw = function(notes) {
 
   return true;
 }
+
+
+Vex.Flow.Beam.applyAndGetBeams = function(voice, stem_direction) {
+  var unprocessedNotes = voice.tickables;
+  var ticksPerGroup    = 4096;
+  var noteGroups       = [];
+  var currentGroup     = [];
+
+  function getTotalTicks(vf_notes){
+    return vf_notes.reduce(function(memo,note){
+      return note.getTicks().value() + memo;
+    }, 0);
+  }
+
+  function createGroups(){
+    var nextGroup = [];
+
+    unprocessedNotes.forEach(function(unprocessedNote){
+      nextGroup    = [];
+      if (unprocessedNote.shouldIgnoreTicks()) {
+        noteGroups.push(currentGroup);
+        currentGroup = nextGroup;
+        return; // Ignore untickables (like bar notes)
+      }
+
+      currentGroup.push(unprocessedNote);
+
+      // If the note that was just added overflows the group tick total
+      if (getTotalTicks(currentGroup) > ticksPerGroup) {
+        nextGroup.push(currentGroup.pop());
+        noteGroups.push(currentGroup);
+        currentGroup = nextGroup;
+      } else if (getTotalTicks(currentGroup) == ticksPerGroup) {
+        noteGroups.push(currentGroup);
+        currentGroup = nextGroup;
+      }
+    });
+
+    // Adds any remainder notes
+    if (currentGroup.length > 0)
+      noteGroups.push(currentGroup);
+  }
+
+  function getBeamGroups() {
+    return noteGroups.filter(function(group){
+        if (group.length > 1) {
+          var beamable = true;
+          group.forEach(function(note) {
+            if (note.getIntrinsicTicks() >= Vex.Flow.durationToTicks("4")) {
+              beamable = false;
+            }
+          });
+          return beamable;
+        }
+        return false;
+    });
+  }
+
+  function formatStems() {
+    noteGroups.forEach(function(group){
+      var stemDirection = determineStemDirection(group);
+
+      applyStemDirection(group, stemDirection);
+    });
+  }
+
+  function determineStemDirection(group) {
+    if (stem_direction) return stem_direction;
+
+    var lineSum = 0;
+
+    group.forEach(function(note) {
+      note.keyProps.forEach(function(keyProp){
+        lineSum += (keyProp.line - 3);
+      });
+    });
+
+    if (lineSum > 0)
+      return -1;
+    return 1;
+  }
+
+  function applyStemDirection(group, direction) {
+    group.forEach(function(note){
+      note.setStemDirection(direction);
+    });
+  }
+
+  function getTupletGroups() {
+    return noteGroups.filter(function(group){
+      if (group[0]) return group[0].tuplet;
+    });
+  }
+
+  // Using closures to store the variables throughout the various functions
+  // IMO Keeps it this process lot cleaner - but not super consistent with
+  // the rest of the API's style - Silverwolf90 (Cyril)
+  createGroups();
+  formatStems();
+
+  // Get the notes to be beamed
+  var beamedNoteGroups = getBeamGroups();
+
+  // Get the tuplets in order to format them accurately
+  var tupletGroups = getTupletGroups();
+
+  // Create a Vex.Flow.Beam from each group of notes to be beamed
+  var beams = [];
+  beamedNoteGroups.forEach(function(group){
+    beams.push(new Vex.Flow.Beam(group));
+  });
+
+  // Reformat tuplets
+  tupletGroups.forEach(function(group){
+    var firstNote = group[0];
+    var tuplet = firstNote.tuplet;
+
+    if (firstNote.beam) tuplet.setBracketed(false);
+    if (firstNote.stem_direction == -1) {
+      tuplet.setTupletLocation( Vex.Flow.Tuplet.LOCATION_BOTTOM);
+    }
+  });
+
+  return beams;
+};

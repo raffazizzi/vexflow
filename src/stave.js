@@ -32,9 +32,15 @@ Vex.Flow.Stave.prototype.init = function(x, y, width, options) {
     space_above_staff_ln: 4,      // in staff lines
     space_below_staff_ln: 4,      // in staff lines
     top_text_position: 1,         // in staff lines
-    bottom_text_position: 7       // in staff lines
+    bottom_text_position: 6       // in staff lines
   };
+  this.bounds = {x: this.x, y: this.y, w: this.width, h: 0};
   Vex.Merge(this.options, options);
+
+  this.options.line_config = [];
+  for (var i = 0; i < this.options.num_lines; i++) {
+    this.options.line_config.push({ visible: true });
+  }
 
   this.height =
     (this.options.num_lines + this.options.space_above_staff_ln) *
@@ -64,6 +70,8 @@ Vex.Flow.Stave.prototype.getTieEndX = function() {
   return this.x + this.width; }
 Vex.Flow.Stave.prototype.setContext = function(context) {
   this.context = context; return this; }
+Vex.Flow.Stave.prototype.getContext = function() {
+  return this.context; }
 Vex.Flow.Stave.prototype.getX = function() {
   return this.x;
 }
@@ -128,9 +136,18 @@ Vex.Flow.Stave.prototype.setTempo = function(tempo, y) {
   return this;
 }
 
-Vex.Flow.Stave.prototype.getHeight = function(width) {
+Vex.Flow.Stave.prototype.getHeight = function() {
   return this.height;
 }
+
+Vex.Flow.Stave.prototype.getSpacingBetweenLines = function() {
+  return this.options.spacing_between_lines_px;
+}
+
+Vex.Flow.Stave.prototype.getBoundingBox = function() {
+  return new Vex.Flow.BoundingBox(this.x, this.y, this.width, this.getBottomY() - this.y);
+  // body...
+};
 
 Vex.Flow.Stave.prototype.getBottomY = function() {
   var options = this.options;
@@ -173,7 +190,6 @@ Vex.Flow.Stave.prototype.getYForGlyphs = function() {
   return this.getYForLine(3);
 }
 
-
 Vex.Flow.Stave.prototype.addGlyph = function(glyph) {
   glyph.setStave(this);
   this.glyphs.push(glyph);
@@ -182,6 +198,7 @@ Vex.Flow.Stave.prototype.addGlyph = function(glyph) {
 }
 
 Vex.Flow.Stave.prototype.addModifier = function(modifier) {
+  this.modifiers.push(modifier);
   modifier.addToStave(this, (this.glyphs.length == 0));
   return this;
 }
@@ -220,9 +237,11 @@ Vex.Flow.Stave.prototype.draw = function(context) {
   var x = this.x;
 
   for (var line=0; line < num_lines; line++) {
-
     var y = this.getYForLine(line);
-    this.context.fillRect(x, y, width, 1);
+
+    if (this.options.line_config[line].visible) {
+      this.context.fillRect(x, y, width, 1);
+    }
   }
 
   x = this.glyph_start_x;
@@ -238,7 +257,9 @@ Vex.Flow.Stave.prototype.draw = function(context) {
   if (bar_x_shift > 0) bar_x_shift += this.options.vertical_bar_width;
   // Draw the modifiers (bar lines, coda, segno, repeat brackets, etc.)
   for (var i = 0; i < this.modifiers.length; i++) {
-    this.modifiers[i].draw(this, bar_x_shift);
+    // Only draw modifier if it has a draw function
+    if (typeof this.modifiers[i].draw == "function")
+      this.modifiers[i].draw(this, bar_x_shift);
   }
   if (this.measure > 0) {
     this.context.save()
@@ -280,4 +301,68 @@ Vex.Flow.Stave.prototype.drawVerticalBarFixed = function(x) {
   var top_line = this.getYForLine(0);
   var bottom_line = this.getYForLine(this.options.num_lines - 1);
   this.context.fillRect(x, top_line, 1, bottom_line - top_line + 1);
+}
+
+/**
+ * Get the current configuration for the Stave.
+ * @return {Array} An array of configuration objects.
+ */
+Vex.Flow.Stave.prototype.getConfigForLines = function() {
+  return this.options.line_config;
+}
+
+/**
+ * Configure properties of the lines in the Stave
+ * @param line_number The index of the line to configure.
+ * @param line_config An configuration object for the specified line.
+ * @throws Vex.RERR "StaveConfigError" When the specified line number is out of
+ *   range of the number of lines specified in the constructor.
+ */
+Vex.Flow.Stave.prototype.setConfigForLine = function(line_number, line_config) {
+  if (line_number >= this.options.num_lines || line_number < 0) {
+    throw new Vex.RERR("StaveConfigError",
+      "The line number must be within the range of the number of lines in the Stave.");
+  }
+  if (!line_config.hasOwnProperty('visible')) {
+    throw new Vex.RERR("StaveConfigError",
+      "The line configuration object is missing the 'visible' property.");
+  }
+  if (typeof(line_config.visible) !== 'boolean') {
+    throw new Vex.RERR("StaveConfigError",
+      "The line configuration objects 'visible' property must be true or false.");
+  }
+
+  this.options.line_config[line_number] = line_config;
+
+  return this;
+}
+
+/**
+ * Set the staff line configuration array for all of the lines at once.
+ * @param lines_configuration An array of line configuration objects.  These objects
+ *   are of the same format as the single one passed in to setLineConfiguration().
+ *   The caller can set null for any line config entry if it is desired that the default be used
+ * @throws Vex.RERR "StaveConfigError" When the lines_configuration array does not have
+ *   exactly the same number of elements as the num_lines configuration object set in
+ *   the constructor.
+ */
+Vex.Flow.Stave.prototype.setConfigForLines = function(lines_configuration) {
+  if (lines_configuration.length !== this.options.num_lines) {
+    throw new Vex.RERR("StaveConfigError",
+      "The length of the lines configuration array must match the number of lines in the Stave");
+  }
+
+  // Make sure the defaults are present in case an incomplete set of
+  //  configuration options were supplied.
+  for (var line_config in lines_configuration) {
+    // Allow 'null' to be used if the caller just wants the default for a particular node.
+    if (!lines_configuration[line_config]) {
+      lines_configuration[line_config] = this.options.line_config[line_config];
+    }
+    Vex.Merge(this.options.line_config[line_config], lines_configuration[line_config]);
+  }
+
+  this.options.line_config = lines_configuration;
+
+  return this;
 }

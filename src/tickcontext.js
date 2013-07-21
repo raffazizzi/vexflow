@@ -10,8 +10,8 @@ Vex.Flow.TickContext = function() {
 }
 
 Vex.Flow.TickContext.prototype.init = function() {
-  this.currentTick = 0;
-  this.maxTicks = 0;
+  this.currentTick = new Vex.Flow.Fraction(0, 1);
+  this.maxTicks = new Vex.Flow.Fraction(0, 1);;
   this.minTicks = null;
   this.width = 0;
   this.padding = 3;     // padding on each side (width += padding * 2)
@@ -25,6 +25,16 @@ Vex.Flow.TickContext.prototype.init = function() {
   // Ignore this tick context for formatting and justification
   this.ignore_ticks = true;
   this.preFormatted = false;
+  this.context = null; // Rendering context
+}
+
+Vex.Flow.TickContext.prototype.setContext = function(context) {
+  this.context = context;
+  return this;
+}
+
+Vex.Flow.TickContext.prototype.getContext = function() {
+  return this.context;
 }
 
 // Get widths context, note and left/right modifiers for formatting
@@ -105,15 +115,24 @@ Vex.Flow.TickContext.prototype.getTickables = function() {
 }
 
 Vex.Flow.TickContext.prototype.addTickable = function(tickable) {
-  if (!tickable) throw new Vex.RERR("BadArgument", "Invalid tickable added.");
-
-  var ticks = tickable.getTicks();
+  if (!tickable) {
+    throw new Vex.RERR("BadArgument", "Invalid tickable added.");
+  }
 
   if (!tickable.shouldIgnoreTicks()) {
     this.ignore_ticks = false;
-    if (ticks > this.maxTicks) this.maxTicks = ticks;
-    if (this.minTicks == null) this.minTicks = ticks;
-    if (ticks < this.minTicks) this.minTicks = ticks;
+
+    var ticks = tickable.getTicks();
+
+    if (ticks.value() > this.maxTicks.value()) {
+      this.maxTicks = ticks.clone();
+    }
+
+    if (this.minTicks == null) {
+      this.minTicks = ticks.clone();
+    } else if (ticks.value() < this.minTicks.value()) {
+      this.minTicks = ticks.clone();
+    }
   }
 
   tickable.setTickContext(this);

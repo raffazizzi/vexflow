@@ -11,6 +11,7 @@ vexflow_sources = [
     "header.js",
     "vex.js",
     "flow.js",
+    "fraction.js",
     "tables.js",
     "fonts/vexflow_font.js",
     "glyph.js",
@@ -20,7 +21,6 @@ vexflow_sources = [
     "tickcontext.js",
     "tickable.js",
     "note.js",
-    "barnote.js",
     "ghostnote.js",
     "stavenote.js",
     "tabnote.js",
@@ -54,9 +54,15 @@ vexflow_sources = [
     "staverepetition.js",
     "stavesection.js",
     "stavetempo.js",
+    "barnote.js",
     "tremolo.js",
+    "tuplet.js",
+    "boundingbox.js",
+    "textnote.js",
+    "frethandfinger.js",
+    "stringnumber.js",
+    "strokes.js"
     ]
 
 Import('dbg opt')
-build_and_stamp("vexflow-dbg.js", vexflow_sources, dbg);
-build_and_stamp("vexflow-free.js", vexflow_sources, opt);
+build_and_stamp("vexflow-min.js", vexflow_sources, opt);

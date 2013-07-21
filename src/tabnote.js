@@ -19,7 +19,6 @@ Vex.Flow.TabNote.prototype.init = function(tab_struct) {
 
   // Note properties
   this.positions = tab_struct.positions; // [{ str: X, fret: X }]
-  this.modifiers = [];
   this.render_options = {
     glyph_font_scale: 30 // font size for note heads and rests
   }
@@ -32,10 +31,24 @@ Vex.Flow.TabNote.prototype.init = function(tab_struct) {
         JSON.stringify(tab_struct));
   }
 
+  this.ghost = false; // Renders parenthesis around notes
+  this.updateWidth();
+}
+
+Vex.Flow.TabNote.prototype.getCategory = function() { return "tabnotes"; }
+
+Vex.Flow.TabNote.prototype.setGhost = function(ghost) {
+  this.ghost = ghost;
+  this.updateWidth();
+  return this;
+}
+
+Vex.Flow.TabNote.prototype.updateWidth = function() {
   this.glyphs = [];
   this.width = 0;
   for (var i = 0; i < this.positions.length; ++i) {
     var fret = this.positions[i].fret;
+    if (this.ghost) fret = "(" + fret + ")";
     var glyph = Vex.Flow.tabToGlyph(fret);
     this.glyphs.push(glyph);
     this.width = (glyph.width > this.width) ? glyph.width : this.width;
@@ -80,15 +93,8 @@ Vex.Flow.TabNote.prototype.addToModifierContext = function(mc) {
   for (var i = 0; i < this.modifiers.length; ++i) {
     this.modifierContext.addModifier(this.modifiers[i]);
   }
+  this.modifierContext.addModifier(this);
   this.preFormatted = false;
-  return this;
-}
-
-Vex.Flow.TabNote.prototype.addModifier = function(modifier, index) {
-  modifier.setNote(this);
-  modifier.setIndex(index || 0);
-  this.modifiers.push(modifier);
-  this.setPreFormatted(false);
   return this;
 }
 

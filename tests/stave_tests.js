@@ -30,18 +30,27 @@ Vex.Flow.Test.Stave.Start = function() {
       Vex.Flow.Test.Stave.drawTempo);
   Vex.Flow.Test.runRaphaelTest("Tempo Test (Raphael)",
       Vex.Flow.Test.Stave.drawTempo);
+  Vex.Flow.Test.runTest("Single Line Configuration Test (Canvas)",
+      Vex.Flow.Test.Stave.configureSingleLine);
+  Vex.Flow.Test.runRaphaelTest("Single Line Configuration Test (Raphael)",
+      Vex.Flow.Test.Stave.configureSingleLine);
+  Vex.Flow.Test.runTest("Batch Line Configuration Test (Canvas)",
+      Vex.Flow.Test.Stave.configureAllLines);
+  Vex.Flow.Test.runRaphaelTest("Batch Line Configuration Test (Raphael)",
+      Vex.Flow.Test.Stave.configureAllLines);
 }
 
 Vex.Flow.Test.Stave.draw = function(options, contextBuilder) {
-  var ctx = new contextBuilder(options.canvas_sel, 400, 120);
+  var ctx = new contextBuilder(options.canvas_sel, 400, 150);
   var stave = new Vex.Flow.Stave(10, 10, 300);
   stave.setContext(ctx);
   stave.draw();
+  stave.getBoundingBox().draw(ctx);
 
-  equals(stave.getYForNote(0), 100, "getYForNote(0)");
-  equals(stave.getYForLine(5), 100, "getYForLine(5)");
-  equals(stave.getYForLine(0), 50, "getYForLine(0) - Top Line");
-  equals(stave.getYForLine(4), 90, "getYForLine(4) - Bottom Line");
+  equal(stave.getYForNote(0), 100, "getYForNote(0)");
+  equal(stave.getYForLine(5), 100, "getYForLine(5)");
+  equal(stave.getYForLine(0), 50, "getYForLine(0) - Top Line");
+  equal(stave.getYForLine(4), 90, "getYForLine(4) - Bottom Line");
 
   ok(true, "all pass");
 }
@@ -60,6 +69,8 @@ Vex.Flow.Test.Stave.drawVerticalBar = function(options, contextBuilder) {
 }
 
 Vex.Flow.Test.Stave.drawMultipleMeasures = function(options, contextBuilder) {
+  expect(0);
+
   // Get the rendering context
   var ctx = contextBuilder(options.canvas_sel, 550, 200);
 
@@ -78,7 +89,6 @@ Vex.Flow.Test.Stave.drawMultipleMeasures = function(options, contextBuilder) {
 
   // Helper function to justify and draw a 4/4 voice
   Vex.Flow.Formatter.FormatAndDraw(ctx, staveBar1, notesBar1);
-
 
   // bar 2 - juxtaposing second bar next to first bar
   var staveBar2 = new Vex.Flow.Stave(staveBar1.width + staveBar1.x, staveBar1.y, 300);
@@ -114,6 +124,8 @@ Vex.Flow.Test.Stave.drawMultipleMeasures = function(options, contextBuilder) {
 }
 
 Vex.Flow.Test.Stave.drawRepeats = function(options, contextBuilder) {
+  expect(0);
+
   // Get the rendering context
   var ctx = contextBuilder(options.canvas_sel, 550, 120);
 
@@ -172,6 +184,8 @@ Vex.Flow.Test.Stave.drawRepeats = function(options, contextBuilder) {
 }
 
 Vex.Flow.Test.Stave.drawVoltaTest = function(options, contextBuilder) {
+  expect(0);
+
   // Get the rendering context
   var ctx = contextBuilder(options.canvas_sel, 725, 200);
 
@@ -185,7 +199,7 @@ Vex.Flow.Test.Stave.drawVoltaTest = function(options, contextBuilder) {
   mm1.setSection("A", 0);
   mm1.setContext(ctx).draw();
   var notesmm1 = [
-    new Vex.Flow.StaveNote({ keys: ["c/4"], duration: "w" }),
+    new Vex.Flow.StaveNote({ keys: ["c/4"], duration: "w" })
   ];
   // Helper function to justify and draw a 4/4 voice
   Vex.Flow.Formatter.FormatAndDraw(ctx, mm1, notesmm1);
@@ -287,6 +301,8 @@ Vex.Flow.Test.Stave.drawVoltaTest = function(options, contextBuilder) {
 }
 
 Vex.Flow.Test.Stave.drawTempo = function(options, contextBuilder) {
+  expect(0);
+
   var ctx = contextBuilder(options.canvas_sel, 725, 350);
   var padding = 10, x = 0, y = 50;
 
@@ -338,4 +354,45 @@ Vex.Flow.Test.Stave.drawTempo = function(options, contextBuilder) {
     new Vex.Flow.StaveNote({ keys: ["g/4"], duration: "8" }),
     new Vex.Flow.StaveNote({ keys: ["e/4"], duration: "8" })
   ]);
+}
+
+Vex.Flow.Test.Stave.configureSingleLine = function(options, contextBuilder) {
+  var ctx = new contextBuilder(options.canvas_sel, 400, 120);
+  var stave = new Vex.Flow.Stave(10, 10, 300);
+  stave.setConfigForLine(0, { visible: true })
+    .setConfigForLine(1, { visible: false })
+    .setConfigForLine(2, { visible: true })
+    .setConfigForLine(3, { visible: false })
+    .setConfigForLine(4, { visible: true });
+  stave.setContext(ctx).draw();
+
+  var config = stave.getConfigForLines();
+  equal(config[0].visible, true, "getLinesConfiguration() - Line 0");
+  equal(config[1].visible, false, "getLinesConfiguration() - Line 1");
+  equal(config[2].visible, true, "getLinesConfiguration() - Line 2");
+  equal(config[3].visible, false, "getLinesConfiguration() - Line 3");
+  equal(config[4].visible, true, "getLinesConfiguration() - Line 4");
+
+  ok(true, "all pass");
+}
+
+Vex.Flow.Test.Stave.configureAllLines = function(options, contextBuilder) {
+  var ctx = new contextBuilder(options.canvas_sel, 400, 120);
+  var stave = new Vex.Flow.Stave(10, 10, 300);
+  stave.setConfigForLines([
+    { visible: false },
+    null,
+    { visible: false },
+    { visible: true },
+    { visible: false }
+  ]).setContext(ctx).draw();
+
+  var config = stave.getConfigForLines();
+  equal(config[0].visible, false, "getLinesConfiguration() - Line 0");
+  equal(config[1].visible, true, "getLinesConfiguration() - Line 1");
+  equal(config[2].visible, false, "getLinesConfiguration() - Line 2");
+  equal(config[3].visible, true, "getLinesConfiguration() - Line 3");
+  equal(config[4].visible, false, "getLinesConfiguration() - Line 4");
+
+  ok(true, "all pass");
 }
